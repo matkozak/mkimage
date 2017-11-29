@@ -1,6 +1,10 @@
-import numpy as np
-#from os import listdir as ls
+# import modules for handling files
 from pathlib import Path
+from sys import argv
+import csv
+
+# import numpy and skimage modules
+import numpy as np
 from skimage import filters #import filters
 from skimage import morphology
 from skimage.measure import label
@@ -477,16 +481,16 @@ def mateusz( path , GFP_pattern = 'GFP' , median_radius = 10, erosion_n = 21 , c
                 
         out.close()
 
-def mateusz_pathlib( path , GFP_pattern = '*GFP*' , median_radius = 10, erosion_n = 21 , con = 2 , method = "yen" ):
+def mateusz_pathlib( path , GFP_pattern = '*GFP*' , median_radius = 10, erosion_n = 21 , con = 2 , method = 'yen' ):
         
         # initialize paths: in/out dirs and output file for numbers
         # using pathlib/Path makes it easier to create folders an manipulate paths than os
 
-        inPath = Path(path)
+        inPath = Path( path )
         outPath = inPath.joinpath(  method + str( median_radius )+ 'r'
                                     + str( erosion_n ) + 'n' + str( con )  + 'con' )
-        outPath.mkdir(parents = True, exist_ok = True)
-        outCsv = outPath.joinpath( "count.csv" )
+        outPath.mkdir( parents = True, exist_ok = True )
+        outCsv = outPath.joinpath( "count_test.csv" )
 
         # print statements for testing
 
@@ -494,10 +498,15 @@ def mateusz_pathlib( path , GFP_pattern = '*GFP*' , median_radius = 10, erosion_
         #print(inPath)
         #print(outCsv)
 
-        with outCsv.open('w') as f:# initialize a csv file for writing
+        with outCsv.open('w', newline = '') as f:# initialize a csv file for writing
 
-            for i in inPath.glob( GFP_pattern ) : #glob returns pattern-matching files
-                    #print (  i  ) 
+            # initialize csv writer and write headers
+            writer = csv.writer( f, dialect = 'excel' )
+            writer.writerow( [ 'Cell' , 'Threshold' , 'Patches' ] )
+
+            # iterate over files
+            for i in inPath.glob( GFP_pattern ) : # glob returns pattern-matching files
+                    # print (  i  ) 
                     # get the name of image i to modify later
                     im_path = outPath.joinpath( i.name )
                     
@@ -515,51 +524,44 @@ def mateusz_pathlib( path , GFP_pattern = '*GFP*' , median_radius = 10, erosion_
                     elif method == 'otsu':
                         threshold_value = filters.threshold_otsu( im_spots )
                     else:
-                        print('method not specified, choose yen/otsu')
+                        print( "method not specified, choose 'yen' or 'otsu'" )
                     #im_threshold = np.zeros(shape = im.shape , dtype=im.dtype)
                     #im_threshold[ im_spots > threshold_value ] = 1
                     im_threshold = img_as_ubyte( im_spots > threshold_value ) # bool array doesn't quite work in ImageJ
 
-                    #print( 'Threshold value: '+str(threshold_value) )
+                    # print( 'Threshold value: '+str(threshold_value) )
                     tiff.imsave( str( im_path ).replace( GFP_pattern , '' ).replace(
                         '.tif' , '_Thresholded_' + method + '.tif' ) , im_threshold )
 
                     # erode and save image
                     im_check = np.ones( shape = im_threshold.shape , dtype = im_threshold.dtype )
                     im_eroded = erosion( im_threshold, erosion_n )
+                    
+                    # loop erosion function as long as the image is changing
                     loop = 0
-                    ## test erosion function that just keeeeeeps going
-
                     while np.max(img_as_float(im_check) - img_as_float(im_eroded)) > 0:
                         im_check = im_eroded
                         im_eroded = erosion (im_eroded, erosion_n)
                         loop+=1
-                        print('loop number', loop)
-                    #andrea = erosion( andrea, 21)
-                    #andrea = label( im_eroded , connectivity = 2 ).astype( im_eroded.dtype )
-                    
-                    #tiff.imsave( str( im_path ).replace( GFP_pattern , '' ).replace(
-                            #'.tif' ,'_Eroded' + '_n' + str(erosion_n) + '.tif' ) , im_eroded)
+                        # print('loop number', loop)
 
                     # save counts as CSV
                     im_eroded, count = label( im_eroded , connectivity = con , return_num = True ) 
-                    f.write( ','.join(list( [ i.name.replace( '.tif' , '' ) , str( count ), method , '\n' ] ) ) )
+                    writer.writerow( [ i.name.replace( '.tif' , '' ) , method , str( count ) ] )
                     tiff.imsave( str( im_path ).replace( GFP_pattern , '' ).replace(
                             '.tif' ,'_Eroded' + '_n' + str( erosion_n ) + '.tif' ) , img_as_ubyte( im_eroded ) )
                     
 
+path = argv[1]
+mateusz_pathlib (path , median_radius = 5, erosion_n = 20, con = 2 )
 
-#print ( mateusz ("/Volumes/MarkoKaksonenLab/Mateusz/microscopy/Ede1_mutants_internal/wt/20170829_MKY0140/raw/stk2tif/Z/cells/unbudded/", median_radius = 6) )
 
+# old inputs, maybe will be useful at some point but probably not really?
+
+# mateusz_pathlib ("/Volumes/MarkoKaksonenLab/Mateusz/microscopy/Ede1_mutants_internal/ede1_null/20170831_MKY0654/raw/stk2tif/Z/cells/unbudded", median_radius = 5, erosion_n = 20, con = 2 )
+
+# mateusz_pathlib ("/Volumes/MarkoKaksonenLab/Mateusz/microscopy/Ede1_mutants_internal/wt/20170829_MKY0140/raw/stk2tif/Z/cells/unbudded", median_radius = 5, erosion_n = 20, con = 2 )
 
 #for i in range(10, 13):
 
 #    mateusz_pathlib("/Volumes/MarkoKaksonenLab/Mateusz/microscopy/Ede1_mutants_internal/wt/20170829_MKY0140/raw/stk2tif/Z/cells/unbudded/", median_radius = 5, erosion_n = i, con = 1)
-
-
-#mateusz ("/Volumes/MarkoKaksonenLab/Mateusz/microscopy/Ede1_mutants_internal/wt/20170829_MKY0140/raw/stk2tif/Z/cells/unbudded/", median_radius = 5, erosion_n = 18, con = 1)
-
-
-mateusz_pathlib ("/Volumes/MarkoKaksonenLab/Mateusz/microscopy/Ede1_mutants_internal/ede1_null/20170831_MKY0654/raw/stk2tif/Z/cells/unbudded", median_radius = 5, erosion_n = 20, con = 2 )
-
-#mateusz_pathlib ("/Volumes/MarkoKaksonenLab/Mateusz/microscopy/Ede1_mutants_internal/wt/20170829_MKY0140/raw/stk2tif/Z/cells/unbudded", median_radius = 5, erosion_n = 20, con = 2 )
