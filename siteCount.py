@@ -15,21 +15,19 @@ import skimage.io as io
 
 
 def subtract_median( im , radius ) :
-        #median filter
-        #print ( im.shape )
-        #im_median = filters.median( im , morphology.disk( median_radius ) )
+        # median filtering function
         im_spots = np.zeros( shape = im.shape , dtype = im.dtype )
         
         for i in range( im.shape[ 0 ] ) :
                 im_median = filters.median( im[ i,:,: ] , morphology.disk( radius ) )
                 im_spots[ i , : , : ] = img_as_uint( 
                         img_as_float( im[ i , : , : ] ) - img_as_float( im_median ) )
-        '''
-        for i in range( im.shape[ 0 ] ) :
-                im_median = filters.median( im[ i , : , : ] , morphology.disk( radius ) )
-                im_spots[ i , : , : ] = im[ i , : , : ] - im_median
+       
+        # when you're bored, figure out why this does not work
+        # for i in range( im.shape[ 0 ] ) :
+        #         im_median = filters.median( im[ i , : , : ] , morphology.disk( radius ) )
+        #         im_spots[ i , : , : ] = im[ i , : , : ] - im_median
 
-        '''
         return im_spots 
 
 def erosion( image , n ) :
@@ -408,7 +406,6 @@ def erosion( image , n ) :
                                 ]
                         ])
         
-        #image_output = np.zeros( shape = image.shape , dtype = image.dtype )
         
         eroded_images = np.zeros( shape = image.shape , dtype = image.dtype )
         
@@ -416,21 +413,18 @@ def erosion( image , n ) :
         
                 tmp_image = morphology.binary_erosion( image , brush[j,:,:,:] )
                 eroded_images = eroded_images + tmp_image
-                
-# first way is Andrea's, I prefer the second as it gives 255 for white so I don't have to convert when I want to show in imageJ. doesn't affect count.
-                # image_output[ eroded_images > 26 - n ] = 1
                 image_output = img_as_ubyte( eroded_images > 26 - n )
         
         return image_output
 
 
-def mask_patches(image,threshold_value=None):
-        #make a mask from the image image
+def mask_patches( image , threshold_value = None ):
+        # make a mask from the image image
         if threshold_value == None: 
                 threshold_value=filters.threshold_yen( image )
 
                 print (threshold_value)
-        #for debug threshold_value = 16000
+        # for debug threshold_value = 16000
         print( 'Yen threshold: '+str(threshold_value) )
         image_threshold = np.zeros(shape=image.shape,dtype=image.dtype)
         image_threshold[image > threshold_value ]=1
@@ -440,48 +434,7 @@ def mask_patches(image,threshold_value=None):
         
         return image_eroded
 
-def mateusz( path , GFP_pattern = 'GFP' , median_radius = 10, erosion_n = 21 , con = 2 , method = "Otsu" ):
-        
-        images = ls( path )
-        
-        GFP_images = [ img for img in images if GFP_pattern in img ]
-
-        outPath = ( path + method + 'r' + str( median_radius ) + 'n'
-                + str( erosion_n ) + 'con' + str( con ))
-
-        out = open( path + str(erosion_n) + "_" + "count.csv", "w" )
-
-        for i in range( len( GFP_images ) ) :
-                #print ( path + GFP_images[ i ] ) 
-                im = tiff.imread( path + '/' + GFP_images[ i ] )
-                
-                #remove cytoplasm bkg
-                
-                im_spots = subtract_median( im , median_radius )
-                
-                tiff.imsave( path + GFP_images[i].replace( GFP_pattern , '' ).replace( '.tif' , '_MD.tif' ),im_spots)
-                
-                #compute threshold
-
-                threshold_value=filters.threshold_otsu( im_spots )
-                #im_threshold = np.zeros(shape = im.shape , dtype=im.dtype)
-                #im_threshold[ im_spots > threshold_value ] = 1
-                im_threshold = img_as_ubyte( im_spots > threshold_value )
-
-                #print( 'Threshold value: '+str(threshold_value) )
-                tiff.imsave( path + GFP_images[i].replace( GFP_pattern , '' ).replace(
-                    '.tif' , '_Thresholded_' + method + '.tif' ) , im_threshold )
-                im_eroded = erosion( im_threshold, erosion_n )
-		
-                tiff.imsave( path + GFP_images[i].replace( GFP_pattern , '' ).replace(
-                    '.tif' ,'_Eroded' + '_n' + str(erosion_n) + '.tif' ) , im_eroded )
-                
-                _, count = label( im_eroded , connectivity = con , return_num = True ) 
-                out.write( GFP_images[i].replace( '.tif' , '' ) + ',' + str( count ) + ',' + method + '\n' )
-                
-        out.close()
-
-def mateusz_pathlib( path , GFP_pattern = '*GFP*' , median_radius = 10, erosion_n = 21 , con = 2 , method = 'yen' ):
+def count_patches( path , GFP_pattern = '*GFP*' , median_radius = 10, erosion_n = 21 , con = 2 , method = 'yen' ):
         
         # initialize paths: in/out dirs and output file for numbers
         # using pathlib/Path makes it easier to create folders an manipulate paths than os
@@ -490,13 +443,7 @@ def mateusz_pathlib( path , GFP_pattern = '*GFP*' , median_radius = 10, erosion_
         outPath = inPath.joinpath(  method + str( median_radius )+ 'r'
                                     + str( erosion_n ) + 'n' + str( con )  + 'con' )
         outPath.mkdir( parents = True, exist_ok = True )
-        outCsv = outPath.joinpath( "count_test.csv" )
-
-        # print statements for testing
-
-        #print(outPath)
-        #print(inPath)
-        #print(outCsv)
+        outCsv = outPath.joinpath( "count.csv" )
 
         with outCsv.open('w', newline = '') as f:# initialize a csv file for writing
 
@@ -506,7 +453,7 @@ def mateusz_pathlib( path , GFP_pattern = '*GFP*' , median_radius = 10, erosion_
 
             # iterate over files
             for i in inPath.glob( GFP_pattern ) : # glob returns pattern-matching files
-                    # print (  i  ) 
+                    
                     # get the name of image i to modify later
                     im_path = outPath.joinpath( i.name )
                     
@@ -514,11 +461,11 @@ def mateusz_pathlib( path , GFP_pattern = '*GFP*' , median_radius = 10, erosion_
                     im = tiff.imread( str (i) )
                     
                     # remove background with median filtering and save MD image
-                    
                     im_spots = subtract_median( im , median_radius )
                     tiff.imsave( str( im_path ).replace( GFP_pattern , '' ).replace( '.tif' , '_MD.tif' ),im_spots)
                     
                     # threshold and save image
+
                     if method == 'yen':
                         threshold_value = filters.threshold_yen( im_spots )
                     elif method == 'otsu':
@@ -527,33 +474,40 @@ def mateusz_pathlib( path , GFP_pattern = '*GFP*' , median_radius = 10, erosion_
                         print( "method not specified, choose 'yen' or 'otsu'" )
                     #im_threshold = np.zeros(shape = im.shape , dtype=im.dtype)
                     #im_threshold[ im_spots > threshold_value ] = 1
-                    im_threshold = img_as_ubyte( im_spots > threshold_value ) # bool array doesn't quite work in ImageJ
-
-                    # print( 'Threshold value: '+str(threshold_value) )
+                    
+                    # threshold
+                    im_threshold = img_as_ubyte( im_spots > threshold_value ) # bool array doesn't quite work with ImageJ
+                    #print( 'Threshold value: '+str(threshold_value) )
+                    
+                    # save
                     tiff.imsave( str( im_path ).replace( GFP_pattern , '' ).replace(
                         '.tif' , '_Thresholded_' + method + '.tif' ) , im_threshold )
 
                     # erode and save image
+
+                    # initialize values for a while loop
                     im_check = np.ones( shape = im_threshold.shape , dtype = im_threshold.dtype )
-                    im_eroded = erosion( im_threshold, erosion_n )
-                    
-                    # loop erosion function as long as the image is changing
+                    im_eroded = im_threshold
                     loop = 0
+                    
+                    # loop erosion as long as the image is changing
                     while np.max(img_as_float(im_check) - img_as_float(im_eroded)) > 0:
                         im_check = im_eroded
                         im_eroded = erosion (im_eroded, erosion_n)
                         loop+=1
                         # print('loop number', loop)
 
-                    # save counts as CSV
+                    # use label to get eroded image with patch labels and count with total number
                     im_eroded, count = label( im_eroded , connectivity = con , return_num = True ) 
+                    
+                    # save eroded image and the counts with csv writer
                     writer.writerow( [ i.name.replace( '.tif' , '' ) , method , str( count ) ] )
                     tiff.imsave( str( im_path ).replace( GFP_pattern , '' ).replace(
                             '.tif' ,'_Eroded' + '_n' + str( erosion_n ) + '.tif' ) , img_as_ubyte( im_eroded ) )
                     
-
+# get the path from command line and run counting function
 path = argv[1]
-mateusz_pathlib (path , median_radius = 5, erosion_n = 20, con = 2 )
+count_patches( path , median_radius = 5, erosion_n = 20, con = 1 )
 
 
 # old inputs, maybe will be useful at some point but probably not really?
