@@ -519,3 +519,16 @@ count_patches( path , median_radius = 5, erosion_n = 20, con = 1 )
 #for i in range(10, 13):
 
 #    mateusz_pathlib("/Volumes/MarkoKaksonenLab/Mateusz/microscopy/Ede1_mutants_internal/wt/20170829_MKY0140/raw/stk2tif/Z/cells/unbudded/", median_radius = 5, erosion_n = i, con = 1)
+
+def cell_area ( im, radius  = 10 ):
+    im_max = max_project( im )
+
+
+
+def max_project( im ):
+    if im.ndim == 3:
+        im_max = np.amax (im, 0)
+        return im_max
+    else:
+        print("Error: 3-dimensional stack required")
+        return None
