@@ -434,6 +434,26 @@ def mask_patches( image , threshold_value = None ):
         
         return image_eroded
 
+def cell_area ( im, radius  = 10 ):
+    im_median = np.zeros( shape = im.shape , dtype = im.dtype )
+    for i in range( im.shape[ 0 ] ) :
+        im_median[ i , : , : ] = filters.median( im[ i , : , : ] , morphology.disk( radius ) )
+    im_median_max = max_project( im_median )
+    im_median_max_threshold = threshold_otsu( im_median_max )
+    im_median_max_binary = img_as_ubyte( im_median_max > im_median_max_threshold )
+    im_labeled = label ( im_median_max_binary, return_num = False )
+    props = regionprops( im_labeled )
+    area = props[0].area
+    return area
+
+def max_project( im ):
+    if im.ndim == 3:
+        im_max = np.amax (im, 0)
+        return im_max
+    else:
+        print("Error: 3-dimensional stack required")
+        return None
+
 def count_patches( path , GFP_pattern = '*GFP*' , median_radius = 10, erosion_n = 21 , con = 2 , method = 'yen' ):
         
         # initialize paths: in/out dirs and output file for numbers
@@ -449,7 +469,7 @@ def count_patches( path , GFP_pattern = '*GFP*' , median_radius = 10, erosion_n 
 
             # initialize csv writer and write headers
             writer = csv.writer( f, dialect = 'excel' )
-            writer.writerow( [ 'Cell' , 'Threshold' , 'Patches' ] )
+            writer.writerow( [ 'Cell' , 'Threshold' , 'Patches' , 'Area' ] )
 
             # iterate over files
             for i in inPath.glob( GFP_pattern ) : # glob returns pattern-matching files
@@ -500,8 +520,11 @@ def count_patches( path , GFP_pattern = '*GFP*' , median_radius = 10, erosion_n 
                     # use label to get eroded image with patch labels and count with total number
                     im_eroded, count = label( im_eroded , connectivity = con , return_num = True ) 
                     
+                    # get out area
+                    area = cell_area( im )
+                    
                     # save eroded image and the counts with csv writer
-                    writer.writerow( [ i.name.replace( '.tif' , '' ) , method , str( count ) ] )
+                    writer.writerow( [ i.name.replace( '.tif' , '' ) , method , str( count ) , area ] )
                     tiff.imsave( str( im_path ).replace( GFP_pattern , '' ).replace(
                             '.tif' ,'_Eroded' + '_n' + str( erosion_n ) + '.tif' ) , img_as_ubyte( im_eroded ) )
                     
@@ -519,16 +542,3 @@ count_patches( path , median_radius = 5, erosion_n = 20, con = 1 )
 #for i in range(10, 13):
 
 #    mateusz_pathlib("/Volumes/MarkoKaksonenLab/Mateusz/microscopy/Ede1_mutants_internal/wt/20170829_MKY0140/raw/stk2tif/Z/cells/unbudded/", median_radius = 5, erosion_n = i, con = 1)
-
-def cell_area ( im, radius  = 10 ):
-    im_max = max_project( im )
-
-
-
-def max_project( im ):
-    if im.ndim == 3:
-        im_max = np.amax (im, 0)
-        return im_max
-    else:
-        print("Error: 3-dimensional stack required")
-        return None
