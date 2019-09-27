@@ -85,7 +85,7 @@ def count_patches(path, GFP_pattern='*GFP*', median_radius=10, erosion_n=21, con
             tiff.imsave(str(im_path).replace(GFP_pattern, '').replace(
                 '.tif', '_Eroded' + '_n' + str(erosion_n) + '.tif'), img_as_ubyte(im_eroded))
 
-
 # get the path from command line and run counting function
-path = argv[1]
-count_patches(path, median_radius=5, erosion_n=26, con=2)
+if __name__ == "__main__": # only executed if ran as script
+    path = argv[1]
+    count_patches(path, median_radius=5, erosion_n=26, con=2)

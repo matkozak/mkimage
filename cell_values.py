@@ -1,10 +1,11 @@
+#%%
 from im_tools import *
 
 # import modules for handling files
 from pathlib import Path
 from sys import argv
 
-
+#%%
 def batch_mask(path, pattern="*GFP*", rescale=False, return_dict=False, save_arrays=False):
     """
     This function reads all images with a keyword ('GFP' by default) and applies a 3D masking procedure.
@@ -46,10 +47,7 @@ def batch_mask(path, pattern="*GFP*", rescale=False, return_dict=False, save_arr
     if return_dict:
         return(pixels)
 
-
-# paths = [
-#    '/Volumes/s-biochem-kaksonen/Mateusz/microscopy/Ede1_mutants_internal/ede1-gfp/20171121_MKY0172/raw/stk2tif/Z/cells/unbudded',
-#    '/Volumes/s-biochem-kaksonen/Mateusz/microscopy/Ede1_mutants_internal/ede1-gfp/20171124_MKY3682/raw/stk2tif/Z/cells/unbudded',
-#    '/Volumes/s-biochem-kaksonen/Mateusz/microscopy/Ede1_mutants_internal/ede1-gfp/20171128_MKY3685/raw/stk2tif/Z/cells/unbudded',
-#    '/Volumes/s-biochem-kaksonen/Mateusz/microscopy/Ede1_mutants_internal/ede1-gfp/20171128_MKY3688/raw/stk2tif/Z/cells/unbudded'
-# ]
+# get the path from command line and run counting function
+if __name__ == "__main__": # only executed if ran as script
+    path = argv[1]
+    batch_mask(path, save_arrays=True)
