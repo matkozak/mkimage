@@ -4,9 +4,11 @@ from im_tools import *
 # import modules for handling files
 from pathlib import Path
 from sys import argv
+import csv
 
 #%%
-def batch_mask(path, pattern="*GFP*", rescale=False, return_dict=False, save_arrays=False):
+def batch_mask(path, pattern="*GFP*",
+               rescale=False, return_dict=False, save_arrays=False, save_means=False):
     """
     This function reads all images with a keyword ('GFP' by default) and applies a 3D masking procedure.
     You need to explicitly tell the function whether it should return a dictionary with all pixel values or save each array as a .txt file.
@@ -44,10 +46,21 @@ def batch_mask(path, pattern="*GFP*", rescale=False, return_dict=False, save_arr
         # save array
         for key, value in pixels.items():
             np.savetxt(str(path_out.joinpath(key))+'.txt', value, fmt=f)
+
+    # output: save a csv file with mean intensity for each cell
+    if save_means:
+        path_out = path_in.joinpath("cell_means.csv")
+        with path_out.open('w', newline='') as f:  # initialize a csv file for writing
+            # initialize csv writer and write headers
+            writer = csv.writer(f, dialect='excel')
+            writer.writerow(['cell', 'intensity'])
+            for key, value in pixels.items():
+                writer.writerow([key, str(round(np.mean(value)))])
+    # output: return dictionary of masked pixels
     if return_dict:
         return(pixels)
 
 # get the path from command line and run counting function
 if __name__ == "__main__": # only executed if ran as script
     path = argv[1]
-    batch_mask(path, save_arrays=True)
+    batch_mask(path, save_means=True)

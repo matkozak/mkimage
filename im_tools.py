@@ -40,7 +40,7 @@ def mask_cell(im, radius=10, max=False):
     if max:
         im_median = max_project(im_median)
     # threshold (otsu)
-    threshold = filters.threshold_otsu(im_median)
+    threshold = filters.threshold_li(im_median)
     im_mask = im_median > threshold
     # return masked image
     return im_mask
