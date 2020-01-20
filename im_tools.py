@@ -40,7 +40,7 @@ def mask_cell(im, radius=10, max=False):
     if max:
         im_median = max_project(im_median)
     # threshold (otsu)
-    threshold = filters.threshold_li(im_median)
+    threshold = filters.threshold_otsu(im_median)
     im_mask = im_median > threshold
     # return masked image
     return im_mask
@@ -66,7 +66,7 @@ def cell_area(im, radius=10):
     """ Return pixel area estimate of cell cross section.
     Only one ROI per image is counted so thresholding has to be unambiguous. """
     im_mask = mask_cell(im, max=True)
-    # im_labeled = label(im_mask, return_num=False) might not even be necessary lmao
+    # im_labeled = label(im_mask, return_num=False) # might not even be necessary lmao
     # haven't decided whether to completely get rid of it but actually there is no reason to use label()
     #props = regionprops(im_labeled)
     #area = props[0].area
@@ -465,3 +465,27 @@ def erode_3d(image, n):
         image_output = img_as_ubyte(eroded_images > 26 - n)
 
     return image_output
+
+def erode_alternative(im, n):
+    im_pad = np.pad(im, 1)
+    im_out = im_pad.copy()
+    index = np.argwhere(im_pad)
+    for i in index:
+        z, y, x = i[0], i[1], i[2]
+        cube_sum = np.sum(im_pad[z-1:z+2, y-1:y+2, x-1:x+2])-1
+        if cube_sum < n:
+            im_out[tuple(i)] = 0
+    im_out = im_out[1:-1, 1:-1, 1:-1]
+    return im_out
+
+def threshold_slices(im, method):
+    thresholds = np.zeros(shape = im.shape , dtype=im.dtype)
+    for i in range(im.shape[0]):
+        if method == 'yen':
+            thresholds[i,:,:] = filters.threshold_yen(im[i,:,:])
+        elif method == 'otsu':
+            thresholds[i,:,:] = filters.threshold_otsu(im[i,:,:])
+        elif method == 'triangle':
+            thresholds[i,:,:] = filters.threshold_triangle(im[i,:,:])
+    im_thresholded = img_as_ubyte(im > thresholds)
+    return im_thresholded
