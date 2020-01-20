@@ -79,13 +79,13 @@ def erode_3d(image, n):
     Performs a three dimensional erosion on binary image. The 3D brush represents all
     possible positions in a cubic array around the eroded pixel while the n parameter
     specifies how many connections a pixel needs to have to be preserved.
-    I.e.: n = 1 means that a pixel is eroded unless it is completely surrounded by 1's,
-    n = 26 means that the pixel is preserved as long as it has 1 neighbour in 3D.
+    I.e.: n = 26 means that a pixel is eroded unless it is completely surrounded by 1's,
+    n = 1 means that the pixel is preserved as long as it has 1 neighbour in 3D.
     """
 
     if n == 0:
         n = 1
-        print("n set to 1; eroding pixels with no neighbor makes no sense")
+        print("n set to 1; smaller values will not do anything")
     if n > 26:
         n = 26
         print("n set to 26; number of neighbor pixels cannot exceed 26")
@@ -457,35 +457,35 @@ def erode_3d(image, n):
         ]
     ])
 
+    image = np.pad(image, 1)
     eroded_images = np.zeros(shape=image.shape, dtype=image.dtype)
 
     for i in range(26):
         tmp = morphology.binary_erosion(image, brush[i, :, :, :])
-        eroded_images = eroded_images + tmp
-        image_output = img_as_ubyte(eroded_images > 26 - n)
+        eroded_images += tmp
 
-    return image_output
+    image_out = eroded_images >= n
+    image_out = image_out[1:-1, 1:-1, 1:-1]
+
+    return image_out
+
 
 def erode_alternative(im, n):
-    im_pad = np.pad(im, 1)
-    im_out = im_pad.copy()
-    index = np.argwhere(im_pad)
+
+    # process input image: binarize and pad
+    im = (im > 0.5).astype(int)
+    im = np.pad(im, 1)
+
+    im_out = im.copy()
+    index = np.argwhere(im)
+
     for i in index:
         z, y, x = i[0], i[1], i[2]
-        cube_sum = np.sum(im_pad[z-1:z+2, y-1:y+2, x-1:x+2])-1
+        # calculate the sum of the cube around nonzero pixel
+        cube_sum = np.sum(im[z-1:z+2, y-1:y+2, x-1:x+2]) - 1
+        # zero pixels below threshold connections
         if cube_sum < n:
             im_out[tuple(i)] = 0
-    im_out = im_out[1:-1, 1:-1, 1:-1]
-    return im_out
 
-def threshold_slices(im, method):
-    thresholds = np.zeros(shape = im.shape , dtype=im.dtype)
-    for i in range(im.shape[0]):
-        if method == 'yen':
-            thresholds[i,:,:] = filters.threshold_yen(im[i,:,:])
-        elif method == 'otsu':
-            thresholds[i,:,:] = filters.threshold_otsu(im[i,:,:])
-        elif method == 'triangle':
-            thresholds[i,:,:] = filters.threshold_triangle(im[i,:,:])
-    im_thresholded = img_as_ubyte(im > thresholds)
-    return im_thresholded
+    im_out = im_out[1:-1, 1:-1, 1:-1].astype(int)
+    return im_out
