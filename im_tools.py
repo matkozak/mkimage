@@ -5,7 +5,7 @@ from skimage import filters, morphology  # import filters
 from skimage.measure import label, regionprops
 from skimage.exposure import rescale_intensity
 from skimage import img_as_float, img_as_uint, img_as_ubyte
-import skimage.external.tifffile as tiff
+import tifffile as tiff
 import skimage.io as io
 
 
@@ -50,10 +50,9 @@ def subtract_median(im, radius):
     """ Performs median filtering and subtracts the result from original image. """
     im_median = median_filter(im, radius)
     # microscope .tif files are uint16 so subtracting below 0 causes integer overflow
-    # casting from to int and back will cause doubling of the positive results
-    # float conversion is the best option as far as I know
-    im_spots = img_as_uint(img_as_float(im) - img_as_float(im_median))
-    return im_spots
+    # for now using np method to cast to int64, skimage function goes back to image
+    im_spots = im.astype(int) - im_median.astype(int)
+    return img_as_uint(im_spots)
 
 
 def rescale_to_float(a):
