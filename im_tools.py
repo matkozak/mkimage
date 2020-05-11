@@ -20,13 +20,22 @@ def max_project(im):
 
 
 def median_filter(im, radius):
-    """ Median filter a 3D image using brush of given radius. """
-    # initialize empty image
-    im_median = np.zeros(shape=im.shape, dtype=im.dtype)
-    # fill empty image with median-filtered slices
-    for i in range(im.shape[0]):
-        im_median[i, :, :] = filters.median(
-            im[i, :, :], morphology.disk(radius))
+    """
+    Median filter a 2D/3D image using brush of given radius.
+    On a 3D image, each slice is median-filtered separately using a 2D structuring element.
+    """
+    if len(im.shape) == 2:
+        im_median = filters.median(im, morphology.disk(radius))
+    elif len(im.shape) == 3:
+        # initialize empty image
+        im_median = np.zeros(shape=im.shape, dtype=im.dtype)
+        # fill empty image with median-filtered slices
+        for i in range(im.shape[0]):
+            im_median[i, :, :] = filters.median(
+                im[i, :, :], morphology.disk(radius))
+    else:
+        print('Cannot deal with the supplied number of dimensions.')
+        return None
     return im_median
 
 
