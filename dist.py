@@ -72,3 +72,9 @@ def prob_dir(path, pattern='*GFP*', rescale=True, make_8b=False):
 
         # save array
         np.savetxt(str(im_path).replace('.tif', '.txt'), prob)
+
+def im_skew(im):
+    im_mask = mask_cell(im)
+    im_masked = im[im_mask]
+    s = (np.mean(im_masked) - np.median(im_masked)) / np.std(im_masked)
+    return s

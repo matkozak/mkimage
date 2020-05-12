@@ -1,3 +1,4 @@
 # everything but Python scripts for the moment
 *
 !*.py
+do_things.py
