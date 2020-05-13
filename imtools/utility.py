@@ -1,12 +1,7 @@
 # import numpy and skimage modules
 import numpy as np
-from skimage import filters, morphology  # import filters
-#from skimage import morphology
-from skimage.measure import label, regionprops
-from skimage.exposure import rescale_intensity
-from skimage import img_as_float, img_as_uint, img_as_ubyte
+import skimage as sk
 import tifffile as tiff
-import skimage.io as io
 
 
 def max_project(im):
@@ -21,18 +16,18 @@ def max_project(im):
 
 def median_filter(im, radius):
     """
-    Median filter a 2D/3D image using brush of given radius.
+    Median filter a 2D/3D image using a circular brush of given radius.
     On a 3D image, each slice is median-filtered separately using a 2D structuring element.
     """
     if len(im.shape) == 2:
-        im_median = filters.median(im, morphology.disk(radius))
+        im_median = sk.filters.median(im, sk.morphology.disk(radius))
     elif len(im.shape) == 3:
         # initialize empty image
         im_median = np.zeros(shape=im.shape, dtype=im.dtype)
         # fill empty image with median-filtered slices
         for i in range(im.shape[0]):
-            im_median[i, :, :] = filters.median(
-                im[i, :, :], morphology.disk(radius))
+            im_median[i, :, :] = sk.filters.median(
+                im[i, :, :], sk.morphology.disk(radius))
     else:
         print('Cannot deal with the supplied number of dimensions.')
         return None
@@ -49,7 +44,7 @@ def mask_cell(im, radius=10, max=False):
     if max:
         im_median = max_project(im_median)
     # threshold (otsu)
-    threshold = filters.threshold_otsu(im_median)
+    threshold = sk.filters.threshold_otsu(im_median)
     im_mask = im_median > threshold
     # return masked image
     return im_mask
@@ -61,7 +56,7 @@ def subtract_median(im, radius):
     # microscope .tif files are uint16 so subtracting below 0 causes integer overflow
     # for now using np method to cast to int64, skimage function goes back to image
     im_spots = im.astype(int) - im_median.astype(int)
-    return img_as_uint(im_spots)
+    return sk.img_as_uint(im_spots)
 
 
 def rescale_to_float(a):
@@ -74,10 +69,6 @@ def cell_area(im, radius=10):
     """ Return pixel area estimate of cell cross section.
     Only one ROI per image is counted so thresholding has to be unambiguous. """
     im_mask = mask_cell(im, max=True)
-    # im_labeled = label(im_mask, return_num=False) # might not even be necessary lmao
-    # haven't decided whether to completely get rid of it but actually there is no reason to use label()
-    #props = regionprops(im_labeled)
-    #area = props[0].area
     area = np.sum(im_mask)
     return area
 
@@ -469,7 +460,7 @@ def erode_3d(image, n):
     eroded_images = np.zeros(shape=image.shape, dtype=image.dtype)
 
     for i in range(26):
-        tmp = morphology.binary_erosion(image, brush[i, :, :, :])
+        tmp = sk.morphology.binary_erosion(image, brush[i, :, :, :])
         eroded_images += tmp
 
     image_out = eroded_images >= n
