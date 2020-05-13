@@ -2,6 +2,7 @@
 import numpy as np
 import skimage as sk
 import tifffile as tiff
+from skimage import filters, morphology
 
 
 def max_project(im):
@@ -20,18 +21,51 @@ def median_filter(im, radius):
     On a 3D image, each slice is median-filtered separately using a 2D structuring element.
     """
     if len(im.shape) == 2:
-        im_median = sk.filters.median(im, sk.morphology.disk(radius))
+        im_median = filters.median(im, morphology.disk(radius))
     elif len(im.shape) == 3:
         # initialize empty image
         im_median = np.zeros(shape=im.shape, dtype=im.dtype)
         # fill empty image with median-filtered slices
         for i in range(im.shape[0]):
-            im_median[i, :, :] = sk.filters.median(
-                im[i, :, :], sk.morphology.disk(radius))
+            im_median[i, :, :] = filters.median(
+                im[i, :, :], morphology.disk(radius))
     else:
         print('Cannot deal with the supplied number of dimensions.')
         return None
     return im_median
+
+
+def subtract_median(im, radius):
+    """ Performs median filtering and subtracts the result from original image. """
+    im_median = median_filter(im, radius)
+    # microscope .tif files are uint16 so subtracting below 0 causes integer overflow
+    # for now using np method to cast to int64, skimage function goes back to image
+    im_spots = im.astype(int) - im_median.astype(int)
+    return sk.img_as_uint(im_spots)
+
+
+def threshold(im, method):
+    '''
+    Wrapper function for common thresholding methods.
+    Takes an array and a method string, one of:
+    'li', 'otsu', 'triangle' or 'yen'.
+    Returns the threshold value.
+    '''
+    # set up a method dictionary
+    thresholding_methods = dict(
+        li = filters.threshold_li,
+        otsu = filters.threshold_otsu,
+        triangle = filters.threshold_triangle,
+        yen = filters.threshold_yen
+    )
+
+    # check if the supplied method is valid
+    if method not in thresholding_methods.keys():
+        print('Specified thresholding method not valid. Choose one of:')
+        print(*thresholding_methods.keys(), sep = '\n')
+        return None
+    
+    return thresholding_methods[method](im)
 
 
 def mask_cell(im, radius=10, max=False):
@@ -44,19 +78,10 @@ def mask_cell(im, radius=10, max=False):
     if max:
         im_median = max_project(im_median)
     # threshold (otsu)
-    threshold = sk.filters.threshold_otsu(im_median)
+    threshold = filters.threshold_otsu(im_median)
     im_mask = im_median > threshold
     # return masked image
     return im_mask
-
-
-def subtract_median(im, radius):
-    """ Performs median filtering and subtracts the result from original image. """
-    im_median = median_filter(im, radius)
-    # microscope .tif files are uint16 so subtracting below 0 causes integer overflow
-    # for now using np method to cast to int64, skimage function goes back to image
-    im_spots = im.astype(int) - im_median.astype(int)
-    return sk.img_as_uint(im_spots)
 
 
 def rescale_to_float(a):
@@ -481,7 +506,7 @@ def erode_andrea(image, n):
     eroded_images = np.zeros(shape=image.shape, dtype=image.dtype)
 
     for i in range(26):
-        tmp = sk.morphology.binary_erosion(image, brush[i, :, :, :])
+        tmp = morphology.binary_erosion(image, brush[i, :, :, :])
         eroded_images += tmp
 
     image_out = eroded_images >= n

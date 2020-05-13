@@ -3,34 +3,28 @@ import csv
 from pathlib import Path
 from sys import argv
 
-# import our tools for image manipulation
-from im_tools import *
+# import third-party packages
+import numpy as np
+import skimage as sk
+import tifffile as tiff
+from skimage.measure import label
+from skimage.exposure import rescale_intensity
 
+# import utility functions
+from .utility import *
 
-def count_patches(path, GFP_pattern='*GFP*', median_radius=10, erosion_n=21, con=2, method='yen'):
-
-    # set up a dictionary for thresholding methods
-    thresholding_methods = dict(
-        li = filters.threshold_li,
-        otsu = filters.threshold_otsu,
-        triangle = filters.threshold_triangle,
-        yen = filters.threshold_yen
-    )
-
-    # check if the method is going to work
-    if method not in thresholding_methods.keys():
-        print('Specified thresholding method not valid. Choose one of:')
-        print(*thresholding_methods.keys(), sep = '\n')
-        return
+def count_patches(path, GFP_pattern='*GFP*', median_radius=10, erosion_n=3, con=2, method='yen', mask = False, loop = False):
 
     # initialize paths: in/out dirs and output file for numbers
     # using pathlib/Path makes it easier to create folders an manipulate paths than os
 
     inPath = Path(path)
-    outPath = inPath.joinpath(method + str(median_radius) + 'r'
-                              + str(erosion_n) + 'n' + str(con) + 'con')
+    outPath = inPath.joinpath(
+        method + '_r' + str(median_radius) + '_n' + str(erosion_n) + '_con' + str(con) + '_mask' * mask + '_loop' * loop)
     outPath.mkdir(parents=True, exist_ok=True)
-    outCsv = outPath.joinpath(method + '_n' + str(erosion_n) + "_count.csv")
+    # delete this at some point, it's a helper for naming but it's not 
+    experiment = next(i for i in inPath.parts if 'MKY' in i)
+    outCsv = outPath.joinpath(experiment + '_' + method + '_n' + str(erosion_n) + "_count.csv")
 
 
     with outCsv.open('w', newline='') as f:  # initialize a csv file for writing
@@ -51,47 +45,44 @@ def count_patches(path, GFP_pattern='*GFP*', median_radius=10, erosion_n=21, con
             # remove background with median filtering and save MD image
             im_spots = subtract_median(im, median_radius)
             tiff.imsave(str(im_path).replace(GFP_pattern, '').replace(
-                '.tif', '_MD.tif'), img_as_ubyte(rescale_intensity(im_spots, out_range='uint8')))
+                '.tif', '_MD.tif'), sk.img_as_ubyte(rescale_intensity(im_spots, out_range='uint8')))
 
             # threshold and save image
-            
-            # this method from im_tools uses slice histograms
-            # consequently the bleaching in lower slices does not affect result
-            # unfortunately it generates a lot of salt if there is a slice without a patch
-            #im_threshold = threshold_slices(im_spots, method)
-
-            # normal thresholding from filters uses stack histograms
+            # filters.threshold methods use stack histograms, not slice histograms
             # we use methods specified in the dictionary at the top
-            threshold_value = thresholding_methods[method](im_spots)
+            if mask:
+                im_masked = im_spots[mask_cell(im)]
+                threshold_value = threshold(im_masked, method)
+            else:
+                threshold_value = threshold(im_spots, method)
 
             # threshold
-            # bool array doesn't quite work with ImageJ, hence img_as_ubyte
             im_threshold = im_spots > threshold_value
             #print( 'Threshold value: '+str(threshold_value) )
 
             # save
+            # bool array doesn't quite work with ImageJ, hence sk.img_as_ubyte
             tiff.imsave(str(im_path).replace(GFP_pattern, '').replace(
-                '.tif', '_Thresholded_' + method + '.tif'), img_as_ubyte(im_threshold))
+                '.tif', '_Thresholded_' + method + '.tif'), sk.img_as_ubyte(im_threshold))
 
             # erode and save image
 
             # pad the image so that eroding can work the edges
-            im_eroded = np.pad(im_threshold, 1)
+            im_eroded = im_threshold.copy()
             
             # initialize values for a while loop
-            im_check = np.ones(shape=im_eroded.shape,
-                               dtype=im_eroded.dtype)
-            loop = 0
-
-            # loop erosion as long as the image is changing
-            while np.max(img_as_float(im_check) - img_as_float(im_eroded)) > 0:
-                im_check = im_eroded.copy()
-                im_eroded = erode_alternative(im_eroded, erosion_n)
-                loop += 1
-                print('loop number', loop)
-
-            # un-pad the image
-            im_eroded = im_eroded[1:-1, 1:-1, 1:-1]
+            # if loop is
+            if loop:
+                im_check = np.ones(shape=im_eroded.shape,
+                                   dtype=im_eroded.dtype)
+                # loop erosion as long as the image is changing
+                while not np.array_equal(im_check, im_eroded):
+                    im_check = im_eroded.copy()
+                    im_eroded = erode_3d(im_eroded, erosion_n)
+                    #loop += 1
+                    #print('loop number', loop)
+            else:
+                im_eroded = erode_3d(im_eroded, erosion_n)
             
             # use label to get eroded image with patch labels and count with total number
             im_eroded, count = label(
@@ -104,11 +95,11 @@ def count_patches(path, GFP_pattern='*GFP*', median_radius=10, erosion_n=21, con
             writer.writerow([i.name.replace('.tif', ''),
                              method, str(count), area])
             tiff.imsave(str(im_path).replace(GFP_pattern, '').replace(
-                '.tif', '_Eroded' + '_n' + str(erosion_n) + '.tif'), img_as_uint(im_eroded))
+                '.tif', '_Eroded' + '_n' + str(erosion_n) + '.tif'), sk.img_as_uint(im_eroded))
 
 # get the path from command line and run counting function
 if __name__ == "__main__": # only executed if ran as script
     path = argv[1]
     method = str(argv[2])
     n = int(argv[3])
-    count_patches(path, median_radius = 5, erosion_n = n, con = 2, method = method)
+    count_patches(path, median_radius = 5, erosion_n = n, con = 2, method = method, mask = True, loop = False)
