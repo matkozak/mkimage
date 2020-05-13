@@ -73,7 +73,28 @@ def cell_area(im, radius=10):
     return area
 
 
-def erode_3d(image, n):
+def erode_3d(im, n):
+
+    # process input image: binarize and pad
+    im = (im > 0.5).astype(int)
+    im = np.pad(im, 1)
+
+    im_out = im.copy()
+    index = np.argwhere(im)
+
+    for i in index:
+        z, y, x = i[0], i[1], i[2]
+        # calculate the sum of the cube around nonzero pixel
+        cube_sum = np.sum(im[z-1:z+2, y-1:y+2, x-1:x+2]) - 1
+        # zero pixels below threshold connections
+        if cube_sum < n:
+            im_out[tuple(i)] = 0
+
+    im_out = im_out[1:-1, 1:-1, 1:-1].astype(int)
+    return im_out
+
+
+def erode_andrea(image, n):
     """
     Performs a three dimensional erosion on binary image. The 3D brush represents all
     possible positions in a cubic array around the eroded pixel while the n parameter
@@ -468,23 +489,3 @@ def erode_3d(image, n):
 
     return image_out
 
-
-def erode_alternative(im, n):
-
-    # process input image: binarize and pad
-    im = (im > 0.5).astype(int)
-    im = np.pad(im, 1)
-
-    im_out = im.copy()
-    index = np.argwhere(im)
-
-    for i in index:
-        z, y, x = i[0], i[1], i[2]
-        # calculate the sum of the cube around nonzero pixel
-        cube_sum = np.sum(im[z-1:z+2, y-1:y+2, x-1:x+2]) - 1
-        # zero pixels below threshold connections
-        if cube_sum < n:
-            im_out[tuple(i)] = 0
-
-    im_out = im_out[1:-1, 1:-1, 1:-1].astype(int)
-    return im_out
