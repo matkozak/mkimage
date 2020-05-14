@@ -71,7 +71,8 @@ def threshold(im, method):
 def mask_cell(im, radius=10, max=False):
     """
     Return a mask based on thresholded median filtered image.
-    To apply mask: im[mask] produces a flat array of masked values. im * mask gives a masked image.
+    To apply mask: im[mask] produces a flat array of masked values.
+    im * mask gives a masked image.
     """
     im_median = median_filter(im, radius)
     # maximum project
@@ -97,6 +98,21 @@ def cell_area(im, radius=10):
     area = np.sum(im_mask)
     return area
 
+
+def collate_stacks(*args):
+    """
+    Takes 3D stacks and concatenates them in the order z, channel, x, y.
+    Rationale: tifffile can save ImageJ hyperstacks, but expects this order.
+    """
+    if not all(i.shape == args[0].shape for i in args):
+        print('stacks need to be the same dimensions')
+        return None
+    
+    for i in args:
+        i = np.expand_dims(i, 1)
+
+    return np.concatenate(args, 1)
+    
 
 def erode_3d(im, n):
 
