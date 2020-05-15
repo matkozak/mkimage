@@ -11,7 +11,9 @@ from skimage.measure import label
 from skimage.exposure import rescale_intensity
 
 # import utility functions
-from .utility import *
+from imtools.utility import *
+
+#note to self: abstract the counting function from the writing function
 
 def count_patches(path, GFP_pattern='*GFP*', median_radius=10, erosion_n=3, con=2, method='yen', mask = False, loop = False):
 
@@ -23,8 +25,9 @@ def count_patches(path, GFP_pattern='*GFP*', median_radius=10, erosion_n=3, con=
         method + '_r' + str(median_radius) + '_n' + str(erosion_n) + '_con' + str(con) + '_mask' * mask + '_loop' * loop)
     outPath.mkdir(parents=True, exist_ok=True)
     # delete this at some point, it's a helper for naming but it's not 
-    experiment = next(i for i in inPath.parts if 'MKY' in i)
-    outCsv = outPath.joinpath(experiment + '_' + method + '_n' + str(erosion_n) + "_count.csv")
+    #experiment = next(i for i in inPath.parts if 'MKY' in i)
+    #outCsv = outPath.joinpath(experiment + '_' + method + '_n' + str(erosion_n) + "_count.csv")
+    outCsv = outPath.joinpath(method + '_n' + str(erosion_n) + "_count.csv")
 
 
     with outCsv.open('w', newline='') as f:  # initialize a csv file for writing

@@ -115,7 +115,12 @@ def collate_stacks(*args):
     
 
 def erode_alternative(im, n):
-
+    """
+    Same as erode_3d; takes an image and a number of connections n.
+    A pixel is eroded if there is less than n non-zero pixels surrounding it.
+    This was supposed to be cleaner and faster than erode_3d and it sometimes is,
+    but it is often much slower (~10x). erode_3d is more consistent.
+    """
     # process input image: binarize and pad
     im = (im > 0.5).astype(int)
     im = np.pad(im, 1)
