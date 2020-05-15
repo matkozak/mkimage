@@ -114,7 +114,7 @@ def collate_stacks(*args):
     return np.concatenate(args, 1)
     
 
-def erode_3d(im, n):
+def erode_alternative(im, n):
 
     # process input image: binarize and pad
     im = (im > 0.5).astype(int)
@@ -135,7 +135,7 @@ def erode_3d(im, n):
     return im_out
 
 
-def erode_andrea(image, n):
+def erode_3d(image, n):
     """
     Performs a three dimensional erosion on binary image. The 3D brush represents all
     possible positions in a cubic array around the eroded pixel while the n parameter
