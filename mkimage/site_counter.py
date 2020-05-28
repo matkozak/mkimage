@@ -11,7 +11,7 @@ from skimage.measure import label
 from skimage.exposure import rescale_intensity
 
 # import utility functions
-from imtools.utility import *
+from .utility import cell_area, erode_3d, mask_cell, threshold, subtract_median
 
 #note to self: abstract the counting function from the writing function
 
