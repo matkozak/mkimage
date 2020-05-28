@@ -101,11 +101,8 @@ def collate_stacks(*args):
     if not all(i.shape == args[0].shape for i in args):
         print('stacks need to be the same dimensions')
         return None
-    
-    for i in args:
-        i = np.expand_dims(i, 1)
-
-    return np.concatenate(args, 1)
+    im_list = [np.expand_dims(im, 1) for im in args]
+    return np.concatenate(im_list, 1)
     
 
 def erode_alternative(im, n):
