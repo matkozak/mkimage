@@ -97,12 +97,14 @@ def collate_stacks(*args):
     """
     Takes 3D stacks and concatenates them in the order z, channel, x, y.
     Rationale: tifffile can save ImageJ hyperstacks, but expects this order.
+    Leaving this here for now, but actually np.swapaxes() works just fine for this.
     """
     if not all(i.shape == args[0].shape for i in args):
         print('stacks need to be the same dimensions')
         return None
     im_list = [np.expand_dims(im, 1) for im in args]
-    return np.concatenate(im_list, 1)
+    im_out = np.concatenate(im_list, 1)
+    return im_out
     
 
 def erode_alternative(im, n):
@@ -515,7 +517,7 @@ def erode_3d(image, n):
     ])
 
     image = np.pad(image, 1)
-    eroded_images = np.zeros(shape=image.shape, dtype=image.dtype)
+    eroded_images = np.zeros(shape=image.shape, dtype=int) # can't sum pure bools
 
     for i in range(26):
         tmp = morphology.binary_erosion(image, brush[i, :, :, :])

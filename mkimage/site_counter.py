@@ -11,9 +11,50 @@ from skimage.measure import label
 from skimage.exposure import rescale_intensity
 
 # import utility functions
-from .utility import cell_area, erode_3d, mask_cell, threshold, subtract_median
+from .utility import (cell_area, collate_stacks, erode_3d,
+                      mask_cell, threshold, subtract_median)
 
 #note to self: abstract the counting function from the writing function
+def count_helper(im, median_radius = 10, erosion_n = 3, con = 2,
+                 method = 'yen', mask = False, loop = False):
+    
+    im_spots = subtract_median(im, median_radius)
+    
+    if mask:
+        im_masked = im_spots[mask_cell(im)]
+        threshold_value = threshold(im_masked, method)
+    else:
+        threshold_value = threshold(im_spots, method)
+
+    # threshold
+    im_threshold = im_spots > threshold_value
+    
+    # erode
+    if loop:
+        im_eroded = im_threshold.copy()
+        im_check = np.ones(shape=im_eroded.shape,
+                            dtype=im_eroded.dtype)
+        # loop erosion as long as the image is changing
+        while not np.array_equal(im_check, im_eroded):
+            im_check = im_eroded.copy()
+            im_eroded = erode_3d(im_eroded, erosion_n)
+    else:
+        im_eroded = erode_3d(im_threshold, erosion_n)
+
+
+    # use label to get eroded image with patch labels and count with total number
+    im_eroded, count = label(
+        im_eroded, connectivity=con, return_num=True)
+
+    # get out area
+    area = cell_area(im)
+    
+    # prepare a hyperstack with MD, threshold and eroded images
+    im_processed = np.array([sk.img_as_ubyte(rescale_intensity(im_spots, out_range='uint8')),
+                             sk.img_as_ubyte(im_threshold),
+                             sk.img_as_ubyte(im_eroded)])
+    return count, area, im_processed
+
 
 def count_patches(path, GFP_pattern='*GFP*', median_radius=10, erosion_n=3, con=2, method='yen', mask = False, loop = False):
 
