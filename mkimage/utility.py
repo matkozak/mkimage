@@ -85,12 +85,6 @@ def mask_cell(im, radius=10, max=False):
     return im_mask
 
 
-def rescale_to_float(a):
-    """ Rescale values of a numpy array to span [0,1]. """
-    b = (a - np.min(a)) / np.ptp(a)
-    return b
-
-
 def cell_area(im, radius=10):
     """ Return pixel area estimate of cell cross section.
     Only one ROI per image is counted so thresholding has to be unambiguous. """
