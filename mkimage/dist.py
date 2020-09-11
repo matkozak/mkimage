@@ -1,16 +1,21 @@
-from im_tools import *
+import numpy as np
+import tifffile as tiff
+
+from .utility import (mask_cell, max_project)
+from skimage.exposure import rescale_intensity
+from skimage import img_as_ubyte
 
 # import modules for handling files
 from pathlib import Path
 from sys import argv
 
-def rescale_x(prob):
+def rescale_x(p):
     """ takes p(i) array and rescales all i values by a factor of integral """
-    p_sum = np.sum(prob, axis=0)[1]
-    i = (prob[:, 0] - prob[0, 0]) / p_sum
-    prob[:, 0] = i
+    p_sum = np.sum(p, axis=0)[1]
+    i = (p[:, 0] - p[0, 0]) / p_sum
+    p[:, 0] = i
 
-    return prob
+    return p
 
 
 def prob_dist(im, make_float=False, rescale=True, make_8b=False):

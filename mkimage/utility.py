@@ -71,8 +71,9 @@ def threshold(im, method):
 def mask_cell(im, radius=10, max=False):
     """
     Return a mask based on thresholded median filtered image.
-    To apply mask: im[mask] produces a flat array of masked values.
-    im * mask gives a masked image.
+    If max is True, performs maximum projection of a 3D stack prior to thresholding.
+    To apply mask: im[mask_cell(im)] produces a flat array of masked values.
+    im * mask_cell(im) gives a masked image.
     """
     im_median = median_filter(im, radius)
     # maximum project
