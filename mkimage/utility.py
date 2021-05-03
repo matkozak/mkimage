@@ -68,10 +68,23 @@ def threshold(im, method):
     return thresholding_methods[method](im)
 
 
-def mask_cell(im, radius=10, max=False):
+def mask_cell(im, radius=10, method = 'otsu', max=False):
     """
-    Return a mask based on thresholded median filtered image.
-    If max is True, performs maximum projection of a 3D stack prior to thresholding.
+    Return a mask (boolean array) based on thresholded median-filtered image.
+
+    Parameters
+    ----------
+    im: array-like
+        Image to be masked.
+    radius: int, optional
+        Radius for the median filtering function.
+    method: int, optional
+        Which thresholding method to use. See treshold() function.
+    max: bool, optional
+        If True, performs maximum projection of a 3D stack prior to thresholding.
+    
+    Notes
+    -----    
     To apply mask: im[mask_cell(im)] produces a flat array of masked values.
     im * mask_cell(im) gives a masked image.
     """
@@ -79,9 +92,9 @@ def mask_cell(im, radius=10, max=False):
     # maximum project
     if max:
         im_median = max_project(im_median)
-    # threshold (otsu)
-    threshold = filters.threshold_otsu(im_median)
-    im_mask = im_median > threshold
+    # threshold
+    threshold_value = threshold(im_median, method)
+    im_mask = im_median > threshold_value
     # return masked image
     return im_mask
 

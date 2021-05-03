@@ -3,7 +3,7 @@
 from setuptools import setup
 
 setup(name='mkimage',
-      version='0.2',
+      version='0.3',
       description='A collection of image-processing utilities',
       url='',
       author='Mateusz Kozak',

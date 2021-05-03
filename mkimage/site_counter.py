@@ -106,7 +106,7 @@ def process_folder(path, GFP_pattern='*GFP*',
         writer.writerow(['Cell', 'Threshold', 'Patches', 'Cross_Area'])
 
         # iterate over files
-        for i in inPath.glob(GFP_pattern):  # glob returns pattern-matching files
+        for i in sorted(inPath.glob(GFP_pattern)):  # glob returns pattern-matching files
 
             # join the output path and image name
             im_path = outPath.joinpath(i.name)
