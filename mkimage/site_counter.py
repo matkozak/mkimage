@@ -77,7 +77,7 @@ def count_patches(im, median_radius=10, erosion_n=3, con=2,
     return count, area, images
 
 
-def process_folder(path, GFP_pattern='*GFP*',
+def process_folder(path, pattern='*GFP*',
                    median_radius=10, erosion_n=3, con=2, method='yen',
                    mask=False, loop=False, save_images=False):
     """
@@ -106,7 +106,7 @@ def process_folder(path, GFP_pattern='*GFP*',
         writer.writerow(['Cell', 'Threshold', 'Patches', 'Cross_Area'])
 
         # iterate over files
-        for i in sorted(inPath.glob(GFP_pattern)):  # glob returns pattern-matching files
+        for i in sorted(inPath.glob(pattern)):  # glob returns pattern-matching files
 
             # join the output path and image name
             im_path = outPath.joinpath(i.name)
@@ -128,23 +128,22 @@ def process_folder(path, GFP_pattern='*GFP*',
                              method, str(count), area])
 
             if save_images: 
-                # fit median-subtracted image into 8-bit and save
+                # save median-subtracted image as 16-bit
                 im_spots = images[0, :, :, :]
-                im_spots = sk.img_as_ubyte(rescale_intensity(im_spots, out_range='uint8'))
-                tiff.imsave(str(im_path).replace(GFP_pattern, '').replace(
+                im_spots = sk.img_as_uint(im_spots)
+                tiff.imsave(str(im_path).replace(pattern, '').replace(
                     '.tif', '_MD.tif'), im_spots)
 
-                # convert 16-bt binary into 8-bit and save
+                # convert boolean into 16-bit image
                 im_thresholded = images[1, :, :, :]
-                im_thresholded = sk.img_as_ubyte(im_thresholded)
-                tiff.imsave(str(im_path).replace(GFP_pattern, '').replace(
+                im_thresholded = sk.img_as_uint(im_thresholded)
+                tiff.imsave(str(im_path).replace(pattern, '').replace(
                     '.tif', '_Thresholded_' + method + '.tif'), im_thresholded)
 
-                # convert enumerated sites to 8-bit and save
-                # safe to do as long as the number of sites is less than 255
+                # save enumerated sites as 16-bit
                 im_eroded = images[2, :, :, :]
-                im_eroded = sk.img_as_ubyte(im_eroded)
-                tiff.imsave(str(im_path).replace(GFP_pattern, '').replace(
+                im_eroded = sk.img_as_uint(im_eroded)
+                tiff.imsave(str(im_path).replace(pattern, '').replace(
                     '.tif', '_Eroded' + '_n' + str(erosion_n) + '.tif'), im_eroded)
 
 # get the path from command line and run counting function
